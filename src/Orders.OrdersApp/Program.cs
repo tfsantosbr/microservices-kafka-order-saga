@@ -11,7 +11,7 @@ namespace Orders.OrdersApp
         {
             using var producer = CreateProducer();
 
-            var message = CreateMessage(Guid.NewGuid(), "Order1;Product1;2;5.50");
+            var message = CreateMessage(Guid.NewGuid().ToString(), "Order1;Product1;2;5.50");
             var result = await producer.ProduceAsync("orders-order-created", message);
 
             Console.WriteLine($"[Enviada] -> {result.Key} | {result.Message.Value}");
@@ -21,22 +21,22 @@ namespace Orders.OrdersApp
 
         private static IProducer<string, string> CreateProducer()
         {
-            return new ProducerBuilder<string, string>(GetConfig())
+            return new ProducerBuilder<string, string>(GetProducerConfig())
                 .Build();
         }
 
-        private static Message<string, string> CreateMessage(Guid key, string value)
+        private static Message<string, string> CreateMessage(string key, string value)
         {
             var message = new Message<string, string>
             {
-                Key = key.ToString(),
+                Key = key,
                 Value = value
             };
 
             return message;
         }
 
-        private static IEnumerable<KeyValuePair<string, string>> GetConfig()
+        private static IEnumerable<KeyValuePair<string, string>> GetProducerConfig()
         {
             var config = new ProducerConfig
             {
