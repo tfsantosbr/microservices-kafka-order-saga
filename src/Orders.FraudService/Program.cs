@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Confluent.Kafka;
+using Orders.FraudService.Models;
+using Orders.Shared.Serializers;
 
 namespace Orders.FraudService
 {
@@ -24,20 +26,29 @@ namespace Orders.FraudService
                     {
                         var result = consumer.Consume(cancelationToken.Token);
                         var key = result.Message.Key;
-                        var value = result.Message.Value;
+                        var order = result.Message.Value;
 
                         Console.WriteLine("-- Message Received ---------------------------------");
                         Console.WriteLine($"Key: {key}");
-                        Console.WriteLine($"Value: {value}");
+                        Console.WriteLine($"Value: {order}");
                         Console.WriteLine("Processing...");
 
-                        System.Threading.Thread.Sleep(5000);
-                        value = value + ";Status1";
+                        Thread.Sleep(5000);
 
-                        Console.WriteLine("Order is valid");
+                        if (order.Price <= 10000)
+                        {
+                            order.Validate();
+                            Console.WriteLine("Order is valid");
+                            await ProduceEventOrderValid(key, order);
+                        }
+                        else
+                        {
+                            Console.WriteLine("CAUTION: Fraud detection in order");
+                            await ProduceEventFraudDetected(key, order);
+                        }
+
                         Console.WriteLine("-----------------------------------------------------");
 
-                        await ProduceEventOrderValid(key, value);
                     }
                     catch (ConsumeException e)
                     {
@@ -52,16 +63,24 @@ namespace Orders.FraudService
             }
         }
 
-        // Private Methods
-
-        private static async Task ProduceEventOrderValid(string key, string value)
+        private static async Task ProduceEventFraudDetected(string key, Order order)
         {
             using var producer = CreateProducer();
 
-            var message = CreateMessage(key, value);
+            var message = CreateMessage(key, order);
+            var result = await producer.ProduceAsync("orders-fraud-detected", message);
+        }
+
+        // Private Methods
+
+        private static async Task ProduceEventOrderValid(string key, Order order)
+        {
+            using var producer = CreateProducer();
+
+            var message = CreateMessage(key, order);
             var result = await producer.ProduceAsync("orders-order-validated", message);
         }
-        
+
         private static CancellationTokenSource ConfigureCancelationToken()
         {
             var cancelationToken = new CancellationTokenSource();
@@ -73,9 +92,10 @@ namespace Orders.FraudService
             return cancelationToken;
         }
 
-        private static IConsumer<string, string> CreateConsumer()
+        private static IConsumer<string, Order> CreateConsumer()
         {
-            return new ConsumerBuilder<string, string>(GetConsumerConfig())
+            return new ConsumerBuilder<string, Order>(GetConsumerConfig())
+                .SetValueDeserializer(new KafkaDeserializer<Order>())
                 .Build();
         }
 
@@ -91,15 +111,16 @@ namespace Orders.FraudService
             return config;
         }
 
-        private static IProducer<string, string> CreateProducer()
+        private static IProducer<string, Order> CreateProducer()
         {
-            return new ProducerBuilder<string, string>(GetProducerConfig())
+            return new ProducerBuilder<string, Order>(GetProducerConfig())
+                .SetValueSerializer(new KafkaSerializer<Order>())
                 .Build();
         }
 
-        private static Message<string, string> CreateMessage(string key, string value)
+        private static Message<string, Order> CreateMessage(string key, Order value)
         {
-            var message = new Message<string, string>
+            var message = new Message<string, Order>
             {
                 Key = key,
                 Value = value

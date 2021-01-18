@@ -13,6 +13,7 @@ Exemplo de implementação de uma SAGA de Pedido em um e-commerce
 orders-order-created
 orders-order-validated
 orders-initial-email-sent
+orders-fraud-detected
 ```
 
 ## Links

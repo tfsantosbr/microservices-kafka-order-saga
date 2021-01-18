@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Confluent.Kafka;
+using Orders.OrdersApp.Models;
+using Orders.Shared.Serializers;
 
 namespace Orders.OrdersApp
 {
@@ -11,7 +13,8 @@ namespace Orders.OrdersApp
         {
             using var producer = CreateProducer();
 
-            var message = CreateMessage(Guid.NewGuid().ToString(), "Order1;Product1;2;5.50");
+            var order = new Order(105, 3, 5000m);
+            var message = CreateMessage(order.Id.ToString(), order);
             var result = await producer.ProduceAsync("orders-order-created", message);
 
             Console.WriteLine($"[Enviada] -> {result.Key} | {result.Message.Value}");
@@ -19,15 +22,16 @@ namespace Orders.OrdersApp
 
         // Private Methods
 
-        private static IProducer<string, string> CreateProducer()
+        private static IProducer<string, Order> CreateProducer()
         {
-            return new ProducerBuilder<string, string>(GetProducerConfig())
+            return new ProducerBuilder<string, Order>(GetProducerConfig())
+                .SetValueSerializer(new KafkaSerializer<Order>())
                 .Build();
         }
 
-        private static Message<string, string> CreateMessage(string key, string value)
+        private static Message<string, Order> CreateMessage(string key, Order value)
         {
-            var message = new Message<string, string>
+            var message = new Message<string, Order>
             {
                 Key = key,
                 Value = value
