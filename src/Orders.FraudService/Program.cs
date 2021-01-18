@@ -31,7 +31,7 @@ namespace Orders.FraudService
                         Console.WriteLine($"Value: {value}");
                         Console.WriteLine("Processing...");
 
-                        System.Threading.Thread.Sleep(2000);
+                        System.Threading.Thread.Sleep(5000);
                         value = value + ";Status1";
 
                         Console.WriteLine("Order is valid");
