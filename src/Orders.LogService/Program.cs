@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Threading;
 using Confluent.Kafka;
+using System.Linq;
+using System.Text;
 
 namespace Orders.LogService
 {
@@ -25,9 +27,12 @@ namespace Orders.LogService
                         var topic = result.Topic;
                         var key = result.Message.Key;
                         var value = result.Message.Value;
+                        var correlationIdHeader = result.Message.Headers.First(header => header.Key == "X-Correlation-ID");
+                        var correlationId = Encoding.ASCII.GetString(correlationIdHeader.GetValueBytes());
 
                         Console.WriteLine("-- Message Received ---------------------------------");
                         Console.WriteLine($"TOPIC: {topic.ToUpperInvariant()}");
+                        Console.WriteLine($"Correlation Id: {correlationId}");
                         Console.WriteLine($"Key: {key}");
                         Console.WriteLine($"Value: {value}");
                         Console.WriteLine("-----------------------------------------------------");

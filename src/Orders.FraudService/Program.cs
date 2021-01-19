@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Confluent.Kafka;
@@ -25,10 +27,13 @@ namespace Orders.FraudService
                     try
                     {
                         var result = consumer.Consume(cancelationToken.Token);
+                        var correlationIdHeader = result.Message.Headers.First(header => header.Key == "X-Correlation-ID");
+                        var correlationId = Encoding.ASCII.GetString(correlationIdHeader.GetValueBytes());
                         var key = result.Message.Key;
                         var order = result.Message.Value;
 
                         Console.WriteLine("-- Message Received ---------------------------------");
+                        Console.WriteLine($"Correlation Id: {correlationId}");
                         Console.WriteLine($"Key: {key}");
                         Console.WriteLine($"Value: {order}");
                         Console.WriteLine("Processing...");
@@ -39,12 +44,12 @@ namespace Orders.FraudService
                         {
                             order.Validate();
                             Console.WriteLine("Order is valid");
-                            await ProduceEventOrderValid(key, order);
+                            await ProduceEventOrderValid(correlationId, key, order);
                         }
                         else
                         {
                             Console.WriteLine("CAUTION: Fraud detection in order");
-                            await ProduceEventFraudDetected(key, order);
+                            await ProduceEventFraudDetected(correlationId, key, order);
                         }
 
                         Console.WriteLine("-----------------------------------------------------");
@@ -63,21 +68,21 @@ namespace Orders.FraudService
             }
         }
 
-        private static async Task ProduceEventFraudDetected(string key, Order order)
+        // Private Methods
+
+        private static async Task ProduceEventFraudDetected(string correlationId, string key, Order order)
         {
             using var producer = CreateProducer();
 
-            var message = CreateMessage(key, order);
+            var message = CreateMessage(correlationId, key, order);
             var result = await producer.ProduceAsync("orders-fraud-detected", message);
         }
 
-        // Private Methods
-
-        private static async Task ProduceEventOrderValid(string key, Order order)
+        private static async Task ProduceEventOrderValid(string correlationId, string key, Order order)
         {
             using var producer = CreateProducer();
 
-            var message = CreateMessage(key, order);
+            var message = CreateMessage(correlationId, key, order);
             var result = await producer.ProduceAsync("orders-order-validated", message);
         }
 
@@ -118,12 +123,17 @@ namespace Orders.FraudService
                 .Build();
         }
 
-        private static Message<string, Order> CreateMessage(string key, Order value)
+        private static Message<string, Order> CreateMessage(string correlationId, string key, Order value)
         {
             var message = new Message<string, Order>
             {
                 Key = key,
                 Value = value
+            };
+
+            message.Headers = new Headers
+            {
+                { "X-Correlation-ID", Encoding.ASCII.GetBytes(correlationId) }
             };
 
             return message;
