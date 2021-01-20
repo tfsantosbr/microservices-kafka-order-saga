@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Confluent.Kafka;
@@ -25,8 +27,11 @@ namespace Orders.EmailService
                         var result = consumer.Consume(cancelationToken.Token);
                         var key = result.Message.Key;
                         var value = result.Message.Value;
+                        var correlationIdHeader = result.Message.Headers.First(header => header.Key == "X-Correlation-ID");
+                        var correlationId = Encoding.ASCII.GetString(correlationIdHeader.GetValueBytes());
 
                         Console.WriteLine("-- Message Received ---------------------------------");
+                        Console.WriteLine($"Correlation Id: {correlationId}");
                         Console.WriteLine($"Key: {key}");
                         Console.WriteLine($"Value: {value}");
                         Console.WriteLine("Processing...");
@@ -34,7 +39,7 @@ namespace Orders.EmailService
                         Console.WriteLine("E-mail sent");
                         Console.WriteLine("-----------------------------------------------------");
 
-                        await ProduceEventEmailSent(key, value);
+                        await ProduceEventEmailSent(correlationId, key, value);
 
                     }
                     catch (ConsumeException e)
@@ -50,11 +55,11 @@ namespace Orders.EmailService
             }
         }
 
-        private static async Task ProduceEventEmailSent(string key, string value)
+        private static async Task ProduceEventEmailSent(string correlationId, string key, string value)
         {
             using var producer = CreateProducer();
 
-            var message = CreateMessage(key, value);
+            var message = CreateMessage(correlationId, key, value);
             var result = await producer.ProduceAsync("orders-initial-email-sent", message);
         }
 
@@ -94,12 +99,17 @@ namespace Orders.EmailService
                 .Build();
         }
 
-        private static Message<string, string> CreateMessage(string key, string value)
+        private static Message<string, string> CreateMessage(string correlationId, string key, string value)
         {
             var message = new Message<string, string>
             {
                 Key = key,
                 Value = value
+            };
+
+            message.Headers = new Headers
+            {
+                { "X-Correlation-ID", Encoding.ASCII.GetBytes(correlationId) }
             };
 
             return message;
