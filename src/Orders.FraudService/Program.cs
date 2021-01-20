@@ -38,7 +38,7 @@ namespace Orders.FraudService
                         Console.WriteLine($"Value: {order}");
                         Console.WriteLine("Processing...");
 
-                        Thread.Sleep(5000);
+                        //Thread.Sleep(5000);
 
                         if (order.Price <= 10000)
                         {

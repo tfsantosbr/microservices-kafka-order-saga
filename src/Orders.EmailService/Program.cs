@@ -35,7 +35,7 @@ namespace Orders.EmailService
                         Console.WriteLine($"Key: {key}");
                         Console.WriteLine($"Value: {value}");
                         Console.WriteLine("Processing...");
-                        System.Threading.Thread.Sleep(1000);
+                        //Thread.Sleep(1000);
                         Console.WriteLine("E-mail sent");
                         Console.WriteLine("-----------------------------------------------------");
 

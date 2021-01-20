@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,13 +16,26 @@ namespace Orders.OrdersApp
         {
             using var producer = CreateProducer();
 
-            var order = new Order(105, 3, 5000m);
-            var message = CreateMessage(order.Id.ToString(), order);
-            var correlationIdHeader = message.Headers.First(header => header.Key == "X-Correlation-ID");
-            var correlationId = Encoding.ASCII.GetString(correlationIdHeader.GetValueBytes());
-            var result = await producer.ProduceAsync("orders-order-created", message);
+            var watch = Stopwatch.StartNew();
 
-            Console.WriteLine($"[Enviada] -> Correlation Id: {correlationId} | Key: {result.Key} | Message: {result.Message.Value}");
+            for (int i = 1; i < 1000; i++)
+            {
+                var order = new Order(105, 3, 5000m);
+                var message = CreateMessage(order.Id.ToString(), order);
+                var correlationIdHeader = message.Headers.First(header => header.Key == "X-Correlation-ID");
+                var correlationId = Encoding.ASCII.GetString(correlationIdHeader.GetValueBytes());
+                await producer.ProduceAsync("orders-order-created", message);
+
+                Console.WriteLine($"[{i} - Enviada]");
+                //Console.WriteLine($"[{i} - Enviada] -> Correlation Id: {correlationId} | Key: {result.Key} | Message: {result.Message.Value}");
+            }
+
+            producer.Flush();
+
+            watch.Stop();
+            Console.WriteLine($"Tempo de Processamento: {watch.Elapsed:hh\\:mm\\:ss\\.ffff}");
+
+            //return Task.CompletedTask;
         }
 
         // Private Methods
@@ -53,7 +67,8 @@ namespace Orders.OrdersApp
         {
             var config = new ProducerConfig
             {
-                BootstrapServers = "localhost:9091,localhost:9092,localhost:9093"
+                BootstrapServers = "localhost:9091,localhost:9092,localhost:9093",
+                EnableDeliveryReports = false
             };
 
             return config;
