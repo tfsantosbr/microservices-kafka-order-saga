@@ -18,7 +18,7 @@ namespace Orders.OrdersApp
 
             var watch = Stopwatch.StartNew();
 
-            for (int i = 1; i < 1000; i++)
+            for (int i = 1; i <= 1; i++)
             {
                 var order = new Order(105, 3, 5000m);
                 var message = CreateMessage(order.Id.ToString(), order);
