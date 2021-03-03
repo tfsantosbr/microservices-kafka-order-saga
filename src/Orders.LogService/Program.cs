@@ -70,11 +70,18 @@ namespace Orders.LogService
 
         private static IEnumerable<KeyValuePair<string, string>> GetConfig()
         {
+            string brokerList = "{BROOKER_LIST}";
+            string connectionString = "{CONNECTION_STRING}";
+
             var config = new ConsumerConfig
             {
                 GroupId = "orders-log-service-group",
-                BootstrapServers = "localhost:9091,localhost:9092,localhost:9093",
-                AutoOffsetReset = AutoOffsetReset.Latest
+                AutoOffsetReset = AutoOffsetReset.Latest,
+                BootstrapServers = brokerList,
+                SaslUsername = "$ConnectionString",
+                SecurityProtocol = SecurityProtocol.SaslSsl,
+                SaslMechanism = SaslMechanism.Plain,
+                SaslPassword = connectionString
             };
 
             return config;

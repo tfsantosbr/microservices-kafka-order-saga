@@ -179,10 +179,17 @@ namespace Orders.FraudService
 
         private static IEnumerable<KeyValuePair<string, string>> GetConsumerConfig()
         {
+            string brokerList = "{BROOKER_LIST}";
+            string connectionString = "{CONNECTION_STRING}";
+
             var config = new ConsumerConfig
             {
                 GroupId = "orders-fraud-service-group",
-                BootstrapServers = "localhost:9091,localhost:9092,localhost:9093",
+                BootstrapServers = brokerList,
+                SaslUsername = "$ConnectionString",
+                SecurityProtocol = SecurityProtocol.SaslSsl,
+                SaslMechanism = SaslMechanism.Plain,
+                SaslPassword = connectionString,
                 AutoOffsetReset = AutoOffsetReset.Latest
             };
 
@@ -214,9 +221,16 @@ namespace Orders.FraudService
 
         private static IEnumerable<KeyValuePair<string, string>> GetProducerConfig()
         {
+            string brokerList = "{BROOKER_LIST}";
+            string connectionString = "{CONNECTION_STRING}";
+            
             var config = new ProducerConfig
             {
-                BootstrapServers = "localhost:9091,localhost:9092,localhost:9093"
+                BootstrapServers = brokerList,
+                SaslUsername = "$ConnectionString",
+                SecurityProtocol = SecurityProtocol.SaslSsl,
+                SaslMechanism = SaslMechanism.Plain,
+                SaslPassword = connectionString,
             };
 
             return config;

@@ -20,7 +20,7 @@ namespace Orders.OrdersApp
 
             for (int i = 1; i <= 1; i++)
             {
-                var order = new Order(105, 3, 5000m);
+                var order = new Order(107, 3, 5000m);
                 var message = CreateMessage(order.Id.ToString(), order);
                 var correlationIdHeader = message.Headers.First(header => header.Key == "X-Correlation-ID");
                 var correlationId = Encoding.ASCII.GetString(correlationIdHeader.GetValueBytes());
@@ -65,9 +65,16 @@ namespace Orders.OrdersApp
 
         private static IEnumerable<KeyValuePair<string, string>> GetProducerConfig()
         {
+            string brokerList = "{BROOKER_LIST}";
+            string connectionString = "{CONNECTION_STRING}";
+
             var config = new ProducerConfig
             {
-                BootstrapServers = "localhost:9091,localhost:9092,localhost:9093",
+                BootstrapServers = brokerList,
+                SaslUsername = "$ConnectionString",
+                SecurityProtocol = SecurityProtocol.SaslSsl,
+                SaslMechanism = SaslMechanism.Plain,
+                SaslPassword = connectionString,
                 EnableDeliveryReports = false
             };
 
